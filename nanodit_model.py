@@ -71,8 +71,15 @@ class NanoDiT(nn.Module): # 그림 그리는 학생
 # --- Diffusion 유틸리티 (DDPM 방식 간단 구현) ---
 
 class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
-    def __init__(self, model, T=1000):
+    # Diffusion 모델의 "노이즈 스케줄(Noise Schedule)"을 미리 계산해서 세팅해두는 부분
+    # 멀쩡한 그림을 1000단계에 걸쳐서 어떻게 망가뜨릴지 계획표를 짜는 곳
+    def __init__(self, model, T=1000): 
         self.model = model
+        """
+        self.T = 1000 (총 단계 수)
+        "우리는 그림을 한 번에 망가뜨리는 게 아니라, 1000번에 걸쳐서 아주 조금씩 노이즈(먹물)를 뿌려서 망가뜨릴 거야."
+        이 숫자가 클수록 그림이 더 천천히, 정교하게 변합니다.
+        """
         self.T = T
         # Beta 스케줄 (Linear)
         self.beta = torch.linspace(1e-4, 0.02, T)

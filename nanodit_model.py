@@ -103,12 +103,14 @@ class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
 
     @torch.no_grad()
     def sample(self, n_samples, device):
-        """생성용: 랜덤 노이즈에서 시작해 점차 이미지를 복원"""
+        """생성용: 랜덤 노이즈에서 시작해 점차 이미지를 복원. 노이즈 걷어내기"""
         self.model.eval()
         x = torch.randn(n_samples, 3, 32, 32).to(device) # 완전한 노이즈
         
+        # loop를 돌면서 noise 조금씩 깎아냄
         for i in reversed(range(self.T)):
             t = torch.tensor([i] * n_samples, device=device).view(-1, 1).float() / self.T
+            # 1. NanoDiT에게 물어봄: "야, 노이즈가 어디냐?"
             predicted_noise = self.model(x, t)
             
             # DDPM 수식에 따른 복원
@@ -121,6 +123,7 @@ class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
             else:
                 noise = torch.zeros_like(x)
             
+            # 2. DiffusionTrainer가 뺌 (여기가 핵심!)
             x = (1 / torch.sqrt(alpha)) * (x - ((1 - alpha) / (torch.sqrt(1 - alpha_bar))) * predicted_noise)
             x = x + torch.sqrt(beta) * noise
             

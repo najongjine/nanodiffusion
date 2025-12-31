@@ -89,9 +89,13 @@ class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
         
         # x_t (노이즈 낀 이미지) 생성
         a_bar = self.alpha_bar[t].view(B, 1, 1, 1).to(x_0.device)
+        # 1. 멀쩡한 그림(x_0)에
+        # 2. 랜덤한 먹물(noise)을 만들어서
+        # 3. 정해진 비율(sqrt(a_bar))대로 섞어버림 -> x_t (문제)
         x_t = torch.sqrt(a_bar) * x_0 + torch.sqrt(1 - a_bar) * noise
         
         # 모델 예측 (시간 t는 0~1로 정규화해서 입력)
+        # 학생(model)한테 "야, 내가 뿌린 먹물(noise)이 어떻게 생겼게?" 물어봄
         predicted_noise = self.model(x_t, t.view(B, 1).float() / self.T)
         
         # MSE Loss

@@ -97,7 +97,11 @@ class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
         W (Width): 이미지 가로 너비 (예: 32픽셀)
         """
         B = x_0.shape[0]
-        # 0단계(깨끗함)부터 1000단계(완전 노이즈) 중 **"어느 시점의 망가진 그림"**을 보여줄지 랜덤으로 정합니다.
+        """
+        미리 망가진 그림을 창고에 저장해둔 게 아닙니다. 
+        팩트: "이번에 1000단계 중에 몇 단계(Level) 강도로 망가뜨릴까?" 하고 주사위만 던진 겁니다.
+        값: 예를 들어 t가 500이면, "야, 500만큼 망가뜨릴 준비 해!" 라는 명령서만 나온 상태입니다. 그림은 아직 멀쩡합니다.
+        """
         t = torch.randint(0, self.T, (B,), device=x_0.device)
         
         # 원본 이미지에 섞어버릴 **"순수한 가우시안 노이즈(잡음)"**를 만듭니다.
@@ -121,7 +125,7 @@ class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
     def sample(self, n_samples, device):
         """생성용: 랜덤 노이즈에서 시작해 점차 이미지를 복원. 노이즈 걷어내기"""
         self.model.eval()
-        x = torch.randn(n_samples, 3, 32, 32).to(device) # 완전한 노이즈
+        x = torch.randn(n_samples, 3, 32, 32).to(device) # 랜덤한 노이즈 덩어리를 만듭니다.
         
         # loop를 돌면서 noise 조금씩 깎아냄
         for i in reversed(range(self.T)):

@@ -81,20 +81,29 @@ class DiffusionTrainer: # 이미지에 먹물 뿌려버리는 선생
         이 숫자가 클수록 그림이 더 천천히, 정교하게 변합니다.
         """
         self.T = T
-        # Beta 스케줄 (Linear)
+        #  ($\beta_t$): 이번 단계에 추가할 노이즈의 양
         self.beta = torch.linspace(1e-4, 0.02, T)
+        # ($\alpha_t$): 이번 단계에서 살아남는 원본의 비율
         self.alpha = 1. - self.beta
+        # ($\bar{\alpha}_t$): 처음부터 현재까지 살아남은 누적 원본 비율 (핵심!)
         self.alpha_bar = torch.cumprod(self.alpha, dim=0)
 
     def get_loss(self, x_0):
         """학습용: 이미지에 노이즈를 섞고, 모델이 그 노이즈를 맞추게 함"""
+        """
+        B (Batch Size): 이미지 개수 (예: 8장, 32장, 64장...)
+        C (Channels): 색상 채널 (RGB면 3, 흑백이면 1)
+        H (Height): 이미지 세로 높이 (예: 32픽셀)
+        W (Width): 이미지 가로 너비 (예: 32픽셀)
+        """
         B = x_0.shape[0]
+        # 0단계(깨끗함)부터 1000단계(완전 노이즈) 중 **"어느 시점의 망가진 그림"**을 보여줄지 랜덤으로 정합니다.
         t = torch.randint(0, self.T, (B,), device=x_0.device)
         
-        # 가우시안 노이즈 생성
+        # 원본 이미지에 섞어버릴 **"순수한 가우시안 노이즈(잡음)"**를 만듭니다.
         noise = torch.randn_like(x_0)
         
-        # x_t (노이즈 낀 이미지) 생성
+        # 이미지랑 계산(곱셈)할 수 있게, 스케줄 표에서 값을 꺼내 모양(차원)을 맞춰주는 과정
         a_bar = self.alpha_bar[t].view(B, 1, 1, 1).to(x_0.device)
         # 1. 멀쩡한 그림(x_0)에
         # 2. 랜덤한 먹물(noise)을 만들어서

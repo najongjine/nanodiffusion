@@ -13,10 +13,40 @@ class NanoDiT(nn.Module): # 그림 그리는 학생
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = (img_size // patch_size) ** 2
-        self.embed_dim = embed_dim
+        self.embed_dim = embed_dim # "이미지 조각을 설명하는 메모지의 크기"
 
         # 1. Patch Embedding: 이미지를 패치 단위로 잘라 임베딩 (Conv2d가 이 역할을 잘 수행함)
         # 입력: (B, C, H, W) -> 출력: (B, Embed_dim, H/P, W/P)
+        """
+        하지만 이 코드에서 kernel_size와 stride를 아주 특이하게 설정해서, 마치 "칼로 자르는(Patchify)" 것과 똑같은 효과를 내도록 꼼수를 쓴 것입니다.
+
+1. 원래 CNN의 방식 (겹치면서 훑기)
+보통 CNN에서는 kernel_size=3, stride=1 같이 설정합니다.
+
+필터가 한 칸씩 옆으로 이동하면서 겹치는 부분을 계속 봅니다.
+
+이건 "자르는" 게 아니라 "훑어보는" 것에 가깝습니다.
+
+2. 이 코드의 방식 (안 겹치게 듬성듬성 찍기)
+코드에 보면 이렇게 되어 있습니다: kernel_size=patch_size, stride=patch_size (예: 둘 다 4)
+
+이러면 필터가 어떻게 움직일까요?
+
+맨 처음 (0~3픽셀) 영역을 쾅! 찍고 계산합니다.
+
+그 다음 4칸을 건너뛰어서(Stride 4), (4~7픽셀) 영역을 쾅! 찍습니다.
+
+겹치는 부분이 하나도 없습니다.
+
+마치 두부를 썰 때, 칼을 대고 썬 다음(Convolution), 칼 폭만큼 옆으로 이동해서(Stride) 다시 써는 것과 완벽하게 똑같은 결과가 나옵니다.
+
+3. 결과적으로
+입력: 32x32 이미지
+
+동작: 4x4 크기의 도장으로, 4칸씩 건너뛰면서 쾅쾅쾅 찍음
+
+출력: 8x8 개의 결과물 (총 64개)
+        """
         self.patch_embed = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
 
         # 2. Positional Embedding: 패치의 위치 정보 (학습 가능)
